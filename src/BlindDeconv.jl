@@ -49,7 +49,7 @@ module BlindDeconv
 	@enum PROXM pogs=1
 
 	"""
-		@enum MatType random binary randhadm dethadm
+		@enum MatType gaussian complex_gaussian binary randhadm dethadm ortho pdft
 
 	Distinguish between matrix designs: `gaussian` stands for gaussian random
 	matrices, `binary` will result in ``\\ell_{i,j} \\in \\{-1, 0, 1\\}``,
