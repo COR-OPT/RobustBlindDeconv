@@ -301,7 +301,7 @@ module BlindDeconv
 			return Aop, ATop
 		elseif mtype == ortho
 			gens = randn(m, d); Q, _ = qr(gens)
-			return sqrt(m) * Q  # Q is orthonormal
+			return sqrt(m) * Array(Q)  # Q is orthonormal
 		elseif mtype == pdft
 			Aop = ((r, x) -> Utils.dft_partial!(r, x))
 			ATop = ((r, x, _) -> Utils.dftT_partial!(r, x, d))
