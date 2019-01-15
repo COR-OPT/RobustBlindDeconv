@@ -151,29 +151,29 @@ end
 
 
 function run_color(pathw, pathx, c, iters, num_saves)
-	wimg = Images.load(pathw); ximg = Images.load(pathx)
-	wr, wg, wb, dwx, dwy = ImageUtils.rgbim2channelfeatures(wimg)
-	xr, xg, xb, dxx, dxy = ImageUtils.rgbim2channelfeatures(ximg)
-	flag = (dwx == dxx) && (dxx == dxy) && (dwy == dxy)
-	m = c * dwx * dwy
-	flag || throw(ArgumentError("
-		Images need to be square and have the same dimensions!"))
-	rProb = BlindDeconvHadamard.gen_problem(m, wr, xr, 0.0)
-	gProb = BlindDeconvHadamard.gen_problem(m, wg, xg, 0.0)
-	bProb = BlindDeconvHadamard.gen_problem(m, wb, xb, 0.0)
-	wRed, xRed = BlindDeconvHadamard.init_method(rProb, init="direction")
-	wGreen, xGreen = BlindDeconvHadamard.init_method(gProb, init="direction")
-	wBlue, xBlue = BlindDeconvHadamard.init_method(bProb, init="direction")
-	# save initializations
-	@printf("Saving initialization...")
-	rgbw = ImageUtils.rescale_from_chan(wRed, wGreen, wBlue, dwx, dwy)
-	rgbx = ImageUtils.rescale_from_chan(xRed, xGreen, xBlue, dwx, dwy)
-	Images.save("init_w.jpg", rgbw)
-	Images.save("init_x.jpg", rgbx)
-	# setup error histories
-	rHist = fill(0.0, 0); gHist = fill(0.0, 0); bHist = fill(0.0, 0)
-	# divide iterations into [num_saves] groups
-	div_epochs = Int(ceil(iters / num_saves))
+    wimg = Images.load(pathw); ximg = Images.load(pathx)
+    wr, wg, wb, dwx, dwy = ImageUtils.rgbim2channelfeatures(wimg)
+    xr, xg, xb, dxx, dxy = ImageUtils.rgbim2channelfeatures(ximg)
+    flag = (dwx == dxx) && (dxx == dxy) && (dwy == dxy)
+    m = c * dwx * dwy
+    flag || throw(ArgumentError("
+        Images need to be square and have the same dimensions!"))
+    rProb = BlindDeconvHadamard.gen_problem(m, wr, xr, 0.0)
+    gProb = BlindDeconvHadamard.gen_problem(m, wg, xg, 0.0)
+    bProb = BlindDeconvHadamard.gen_problem(m, wb, xb, 0.0)
+    wRed, xRed = BlindDeconvHadamard.init_method(rProb, init="direction")
+    wGreen, xGreen = BlindDeconvHadamard.init_method(gProb, init="direction")
+    wBlue, xBlue = BlindDeconvHadamard.init_method(bProb, init="direction")
+    # save initializations
+    @printf("Saving initialization...")
+    rgbw = ImageUtils.rescale_from_chan(wRed, wGreen, wBlue, dwx, dwy)
+    rgbx = ImageUtils.rescale_from_chan(xRed, xGreen, xBlue, dwx, dwy)
+    Images.save("init_w.jpg", rgbw)
+    Images.save("init_x.jpg", rgbx)
+    # setup error histories
+    rHist = fill(0.0, 0); gHist = fill(0.0, 0); bHist = fill(0.0, 0)
+    # divide iterations into [num_saves] groups
+    div_epochs = Int(ceil(iters / num_saves))
     for k = 1:num_saves
         println(@sprintf("Recovering red channel at %d...", k))
         wRed, xRed, er = BlindDeconvHadamard.subgradient_solver_noinit(
@@ -194,15 +194,15 @@ function run_color(pathw, pathx, c, iters, num_saves)
         Images.save(@sprintf("w_iter_%d.jpg", k), rgbw)
         Images.save(@sprintf("x_iter_%d.jpg", k), rgbx)
     end
-	# equalize history lengths
-	maxLen = maximum(length.((rHist, gHist, bHist)))
-	append!(rHist, fill(0.0, maxLen - length(rHist)))
-	append!(gHist, fill(0.0, maxLen - length(gHist)))
-	append!(bHist, fill(0.0, maxLen - length(bHist)))
-	semilogy(collect(1:maxLen), rHist, color="red", label="red")
-	semilogy(collect(1:maxLen), gHist, color="green", label="green")
-	semilogy(collect(1:maxLen), bHist, color="blue", label="blue")
-	legend(); title("Error history for different channels"); show()
+    # equalize history lengths
+    maxLen = maximum(length.((rHist, gHist, bHist)))
+    append!(rHist, fill(0.0, maxLen - length(rHist)))
+    append!(gHist, fill(0.0, maxLen - length(gHist)))
+    append!(bHist, fill(0.0, maxLen - length(bHist)))
+    semilogy(collect(1:maxLen), rHist, color="red", label="red")
+    semilogy(collect(1:maxLen), gHist, color="green", label="green")
+    semilogy(collect(1:maxLen), bHist, color="blue", label="blue")
+    legend(); title("Error history for different channels"); show()
 end
 
 function main()
