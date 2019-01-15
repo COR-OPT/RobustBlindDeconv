@@ -72,10 +72,35 @@ println("Proximal method error: ", ds[end])
 ```
 
 ### Running the experiments
-The experiments are available under the `experiments/` folder. The choice of
-parameters for each is documented in \[1\]. Most of the experiments output the
-results in a `.csv` file, under an appropriate name. There is no code for
-reproducing figures included, since most of them were written in Latex / Tikz.
+In the `experiments/` folder, there is code available for running different
+types of empirical evaluations. Individual experiments output the results
+in a `.csv` file under appropriate names. The figures in the paper were coded
+in Latex / Tikz, so it is not possible to script this output using Julia.
+
+In order to reproduce the results using the `PyPlot` visualization library in
+Julia, it is recommended to use the `run_experiment.jl` script. Make sure your
+working directory is `experiments/`, and run
+
+```bash
+$ julia run_experiment.jl --help
+```
+
+to see a list of available commands. Each command corresponds to a different
+experiment presented in the paper, with options that can be listed via
+
+```bash
+$ julia run_experiment.jl <cmd> --help
+```
+
+where `cmd` is one of `decay_eval, synthetic_test, matvec_eval, color_img_test,
+mnist_img_test`. For example, to reproduce the bottom row of Figure 10, use
+
+```bash
+$ cd experiments
+$ julia run_experiment.jl mnist_img_test --idx_w 4096 --idx_x 8192 --iters 800
+```
+
+The choice of parameters for each experiment is documented in \[1\].
 
 ### References
 
