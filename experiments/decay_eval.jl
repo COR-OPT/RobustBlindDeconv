@@ -53,7 +53,7 @@ function main()
 		"--iters"
 			help = "The number of iterations for minimization"
 			arg_type = Int
-			default = 1500
+			default = 1000
 		"--i"
 			help = "The coefficient of (d1 + d2) in m = i * (d1 + d2)"
 			arg_type = Int
