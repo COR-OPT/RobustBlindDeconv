@@ -120,7 +120,7 @@ function main()
 		"--q"
 			help = "The step size decay parameter"
 			arg_type = Float64
-			default = 0.99
+			default = 0.98
 	end
 	parsed = parse_args(s)
 	idx_w, idx_x = parsed["idx_w"], parsed["idx_x"]
