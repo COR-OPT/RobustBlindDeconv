@@ -722,6 +722,41 @@ module BlindDeconv
 
 
 	"""
+		gen_problem(w::Array, x::Array, L::Array, R::Array, pfail=0.0,
+					adv_noise=false)
+
+	Set up a problem where the user provides the measurement vectors explicitly,
+	in addition to the true signals.
+	"""
+	function gen_problem(w::Array, x::Array, L::Array, R::Array,
+						 pfail=0.0, adv_noise=false)
+		m = size(L)[1]; d1 = length(w); d2 = length(x);
+		if (m != size(R)[1]) || (size(L)[2] != d1) || (size(R)[2] != d2)
+			throw(ArgumentError("Matrix sizes are incompatible!"));
+		end
+		Lw = fill(0.0, m); Rx = fill(0.0, m); y = fill(0.0, m)
+		LT = RT = nothing
+		if adv_noise
+			# generate measurements and impute a different signal
+			generate_measurements!(y, L, R, w, x, 0.0)
+			opAx!(Lw, L, randn(d1))
+			opAx!(Rx, R, randn(d2))
+			# replace indices
+			add_noise!(y, (Lw .* Rx), pfail, true)
+		else
+			generate_measurements!(y, L, R, w, x, pfail)
+		end
+		# initialize via Duchi
+		w0 = randn(d1); x0 = randn(d2)
+		direction_init!(w0, x0, y, L, R, LT, RT, kw=(m / d1), kx=(m / d2))
+		radius_init!(w0, x0, Lw, Rx, y, L, R)
+		# reset counts
+		matvecCount[1] = 0
+		return BCProb(L, R, LT, RT, y, w, x, w0, x0, pfail)
+	end
+
+
+	"""
 		gen_problem_complex(m::Int, w::Array, x::Array, Ltype::MatType,
 							Rtype::MatType, pfail::Float64)
 
