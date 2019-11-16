@@ -521,6 +521,27 @@ module BlindDeconv
 
 
     """
+        genProblem(w::Array{<:Number, 1}, x::Array{<:Number, 1},
+                   Lmat::Array{<:Number, 2}, Rmat::Array{<:Number, 2},
+                   pfail::Float64)
+
+    If the user supplies the measurement matrices instead, generate the
+    measurements accordingly.
+    """
+    function genProblem(w::Array{<:Number, 1}, x::Array{<:Number, 1},
+                        Lmat::Array{<:Number, 2}, Rmat::Array{<:Number, 2},
+                        pfail::Float64)
+        d1, d2 = length(w), length(x); m = size(Lmat)[1]
+        y = generateMeasurements(Lmat, Rmat, w, x, pfail)
+        w0 = fill(zero(eltype(y)), d1); x0 = fill(zero(eltype(y)), d2)
+        directionInit!(w0, x0, y, Lmat, Rmat, nothing, nothing,
+                       kw=(m / d1), kx=(m / d2))
+        radiusInit!(w0, x0, y, Lmat, Rmat)
+        return BCProb(Lmat, Rmat, nothing, nothing, y, w, x, w0, x0, pfail)
+    end
+
+
+    """
         clearMatvecCount()
 
     Resets the counter of matrix-vector products.
