@@ -337,4 +337,18 @@ module Utils
             abs(norm(w0)^2 * norm(x0)^2 + norm(w)^2 * norm(x)^2 - cross - conj(cross)))
     end
 
+
+    """
+        genCoherentVec(d, λ)
+
+    Generate a coherent vector by taking a convex combination of the all-ones
+    vector and a vector in the canonical basis of ``\\mathbb{R}^d``, combined
+    with parameter ``\\lambda``.
+    """
+    function genCoherentVec(d, λ)
+        w₀ = normalize(ones(d))
+        w₁ = vcat(1.0, fill(0.0, d - 1))
+        return (1 - λ) * w₀ .+ λ * w₁
+    end
+
 end

@@ -289,7 +289,8 @@ module BlindDeconv
                                use_polyak=false)
         d1, d2 = length(prob.w), length(prob.x)
         wxf = norm(prob.w) * norm(prob.x)
-        distFun = (w, x) -> Utils.frob_opt(w, x, prob.w, prob.x) / wxf
+        wxM = prob.w .* prob.x'
+        distFun = (w, x) -> norm(w .* x' - wxM) / wxf
         dists = fill(0.0, T)
         xk, wk = copy(prob.x0), copy(prob.w0)
         η = λ
@@ -538,6 +539,31 @@ module BlindDeconv
                        kw=(m / d1), kx=(m / d2))
         radiusInit!(w0, x0, y, Lmat, Rmat)
         return BCProb(Lmat, Rmat, nothing, nothing, y, w, x, w0, x0, pfail)
+    end
+
+
+    """
+        genCoherentProblem(d, m, λ, pfail=0.0)
+
+    Generate a "coherent" problem with `m` measurements and signal dimension
+    `d`, with the "left" signal generated as the `λ`-convex combination of the
+    normalized all-ones vector and the first canonical basis vector. In this
+    setting, the "left" measurement matrix is a partial DFT matrix and the
+    "right" measurement matrix is a complex Gaussian matrix.
+    """
+    function genCoherentProblem(d, m, λ, pfail=0.0)
+        w = Utils.genCoherentVec(d, λ); x = normalize(randn(d))
+        # dft-type measurements
+        Ltype = BlindDeconv.pdft; Rtype = BlindDeconv.complex_gaussian
+        L, LT = genMat(m, d, Ltype); R, RT = genMat(m, d, Rtype)
+        # generate measurements
+        y = fill(zero(eltype(R)), m)
+        y[:] = generateMeasurements(L, R, w, x, pfail)
+        # initialize close to the truth, make sure both vectors are complex
+        w₀   = fill(zero(eltype(y)), d); x₀ = fill(zero(eltype(y)), d)
+        w₀   = w + 0.1 * normalize(complex(randn(d)) + complex(randn(d))im)
+        x₀   = x + 0.1 * normalize(complex(randn(d)) + complex(randn(d))im)
+        return BCProb(L, R, LT, RT, y, w, x, w₀, x₀, pfail)
     end
 
 
