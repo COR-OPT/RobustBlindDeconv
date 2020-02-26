@@ -341,14 +341,16 @@ module Utils
     """
         genCoherentVec(d, λ)
 
-    Generate a coherent vector by taking a convex combination of the all-ones
-    vector and a vector in the canonical basis of ``\\mathbb{R}^d``, combined
-    with parameter ``\\lambda``.
+    Generate a coherent vector of length `d` by setting its first `floor(λ * d)`
+    elements to 1 and the rest to 0, and normalizing.
     """
     function genCoherentVec(d, λ)
+        numNz = trunc(Int, λ * d)
         w₀ = normalize(ones(d))
         w₁ = vcat(1.0, fill(0.0, d - 1))
-        return (1 - λ) * w₀ .+ λ * w₁
+        # return (1 - λ) * w₀ .+ λ * w₁
+        w  = vcat(ones(numNz), fill(0.0, d - numNz))
+        return normalize(w)
     end
 
 end

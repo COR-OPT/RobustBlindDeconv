@@ -45,7 +45,7 @@ Run the main loop, with the number of measurements ranging from `2d` to
 "pdft_recovery_[d].csv", where `[d]` is the number used for the dimension `d`.
 """
 function mainLoop(iMax, d, T, ϵ, reps, λLength)
-    λRng = range(0.0, stop=1.0, length=λLength)
+    λRng = range(0.05, stop=1.0, length=λLength)
     df   = DataFrame(i=Int64[], lambda=[], succ=[])
     for i = 1:iMax
         m = i * 2 * d
