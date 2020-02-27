@@ -25,16 +25,17 @@ def phase_plot(save_name, path):
     ynum = len(np.unique(df[:, 0]))
     xnum = len(np.unique(df[:, 1]))
     fig, ax = plt.subplots()
-    im = ax.imshow(np.reshape(df[:, 2], (ynum, xnum)),
+    im = ax.imshow(np.reshape(df[:, 3], (ynum, xnum)),
         cmap="gray", interpolation="nearest")
-    ax.set_title(r"$ d = 100 $")
-    ax.set_xlabel(r"$ \lambda $")
-    ax.set_ylabel(r"$ \frac{m}{2d} $")
+    ax.set_title(r"$ d = 50 $")
+    ax.set_xlabel(r"$ \mu_h^2 $")
+    ax.set_ylabel(r"$ \frac{m}{2d} $", rotation=0, labelpad=20)
     yidx    = np.arange(ynum)
     ylabels = list(map(lambda x: "$ %s " % format(x), np.arange(ynum) + 1))
     xlabels = [""] * xnum
-    xlabels[0] = "$ 0.05 $"
-    xlabels[-1] = "$ 1.0 $"
+    xlabels = list(map(lambda x: "$ %.0f $" % x, df[:, 1]))
+    # xlabels[0] = "$ {} $".format(int(0.05 * 100))
+    # xlabels[-1] = "$ {} $".format(int(1.0 * 100))
     plt.setp(ax, yticks=yidx, yticklabels=ylabels,
         xticks=np.arange(xnum), xticklabels=xlabels)
     plt.savefig(save_name, bbox_inches="tight")

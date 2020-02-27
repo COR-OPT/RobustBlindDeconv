@@ -543,7 +543,7 @@ module BlindDeconv
 
 
     """
-        genCoherentProblem(d, m, λ, pfail=0.0)
+        genCoherentProblem(d, m, λ, δ, pfail=0.0)
 
     Generate a "coherent" problem with `m` measurements and signal dimension
     `d`, with the "left" signal generated as the `λ`-convex combination of the
@@ -551,7 +551,7 @@ module BlindDeconv
     setting, the "left" measurement matrix is a partial DFT matrix and the
     "right" measurement matrix is a complex Gaussian matrix.
     """
-    function genCoherentProblem(d, m, λ, pfail=0.0)
+    function genCoherentProblem(d, m, λ, δ, pfail=0.0)
         w = Utils.genCoherentVec(d, λ); x = normalize(randn(d))
         # dft-type measurements
         Ltype = BlindDeconv.pdft; Rtype = BlindDeconv.complex_gaussian
@@ -561,8 +561,8 @@ module BlindDeconv
         y[:] = generateMeasurements(L, R, w, x, pfail)
         # initialize close to the truth, make sure both vectors are complex
         w₀   = fill(zero(eltype(y)), d); x₀ = fill(zero(eltype(y)), d)
-        w₀   = w + 0.1 * normalize(complex(randn(d)) + complex(randn(d))im)
-        x₀   = x + 0.1 * normalize(complex(randn(d)) + complex(randn(d))im)
+        w₀   = w + δ * normalize(complex(randn(d)) + complex(randn(d))im) * norm(w)
+        x₀   = x + δ * normalize(complex(randn(d)) + complex(randn(d))im) * norm(x)
         return BCProb(L, R, LT, RT, y, w, x, w₀, x₀, pfail)
     end
 
