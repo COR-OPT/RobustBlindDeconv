@@ -227,9 +227,14 @@ module Utils
     Computes the partial DFT of `x` after keeping only the first `length(x)`
     columns of the DFT matrix. The result is stored in `r`.
     """
-    function dft_partial!(r, x)
+    function dft_partial!(r::Array, x)
         # pad x with zeros and compute fft
         copyto!(r, fft(vcat(x, fill(0., length(r) - length(x))), 1))
+    end
+
+
+    function dft_partial(m::Int, x)
+        return fft(vcat(x, fill(0.0, m - length(x))), 1)
     end
 
 
@@ -239,8 +244,13 @@ module Utils
     Computes the result of ``r = (F R_{1:d})^H w``, where ``F`` is the
     DFT matrix and ``R_{1:d}`` is its restriction to the first `d` columns.
     """
-    function dftT_partial!(r, w, d)
+    function dftT_partial!(r::Array, w, d)
         copyto!(r, bfft(w, 1)[1:d])
+    end
+
+
+    function dftT_partial(w, d)
+        return bfft(w, 1)[1:d]
     end
 
 

@@ -84,7 +84,7 @@ module BlindDeconv
     """
     function measOp(L, R, w, x)
         matvecCount[1] += 2
-        return (conj(L) * w) .* (R * conj(x))
+        return conj(L * conj(w)) .* (R * conj(x))
     end
 
 
@@ -110,6 +110,11 @@ module BlindDeconv
     end
 
 
+    function smoothLoss(prob::BCProb, w, x)
+        return (1 / length(prob.y)) * norm(residual(prob, w, x))^2
+    end
+
+
     csign(x) = (abs(x) <= 1e-15) ? zero(x) : (x / (2 * abs(x)))
 
 
@@ -125,13 +130,24 @@ module BlindDeconv
     function subgrad(prob::BCProb, w, x)
         m = length(prob.y)
         # compute Lw/Rx terms
-        Lw = conj(prob.L) * w; Rx = conj(prob.R) * x
+        Lw = conj(prob.L * conj(w)); Rx = conj(prob.R * conj(x))
         r  = (Lw .* conj(Rx) .- prob.y)
         if isa(eltype(prob.L), Complex) || isa(eltype(prob.R), Complex)
             map!(csign, r, r)
         else
             map!(sign, r, r)
         end
+        gw = transpose(prob.L) * (Rx .* r)
+        gx = transpose(prob.R) * (Lw .* conj(r))
+        return (gw / m), (gx / m)
+    end
+
+
+    function gradSmooth(prob::BCProb, w, x)
+        m = length(prob.y)
+        r = residual(prob, w, x)
+        # compute Lw/Rx terms
+        Lw = conj(prob.L * conj(w)); Rx = conj(prob.R * conj(x))
         gw = transpose(prob.L) * (Rx .* r)
         gx = transpose(prob.R) * (Lw .* conj(r))
         return (gw / m), (gx / m)
@@ -151,7 +167,10 @@ module BlindDeconv
         elseif mtype == complex_gaussian
             return (1 / sqrt(2)) * complex.(randn(m, d), randn(m, d)), nothing
         elseif mtype == pdft
-            return fft(Matrix(1.0I, m, m), 2)[:, 1:d], nothing
+            return LinearMap{Complex}(
+                X -> Utils.dft_partial(m, X),
+                X -> Utils.dftT_partial(X, d),
+                m, d), nothing
         else
             ispow2(d) || throw(ArgumentError("d must be a power of 2"))
             k = trunc(Int, m / d)
@@ -312,6 +331,37 @@ module BlindDeconv
             if (γ != nothing)
                 project2ball!(wk, γ); project2ball!(xk, γ)
             end
+        end
+        return wk, xk, dists
+    end
+
+
+    function gradientMethod(prob, T, λ=1.0, q=1.0; γ=1.0, ϵ=1e-10, use_polyak=true)
+        d1, d2 = length(prob.w), length(prob.x)
+        wxf    = norm(prob.w) * norm(prob.x)
+        wxM    = prob.w .* prob.x'
+        distFun = (w, x) -> norm(w .* x' - wxM) / wxf
+        dists = fill(0.0, T)
+        xk, wk = copy(prob.x0), copy(prob.w0)
+        η = λ
+        for i = 1:T
+            dists[i] = distFun(wk, xk)
+            (dists[i] ≤ ϵ) && return wk, xk, dists[1:i]
+            gw, gx = gradSmooth(prob, wk, xk)
+            gMag = norm(vcat(gw, gx))
+            if use_polyak
+                loss = smoothLoss(prob, wk, xk)
+                step = loss / (gMag^2)
+                wk[:] = wk - step * gw
+                xk[:] = xk - step * gx
+            else
+                wk[:] = wk - η * (gw / gMag)
+                xk[:] = xk - η * (gx / gMag)
+            end
+            if (γ != nothing)
+                project2ball!(wk, γ); project2ball!(xk, γ)
+            end
+            η *= q
         end
         return wk, xk, dists
     end
