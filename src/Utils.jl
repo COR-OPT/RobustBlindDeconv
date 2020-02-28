@@ -356,9 +356,6 @@ module Utils
     """
     function genCoherentVec(d, λ)
         numNz = trunc(Int, λ * d)
-        w₀ = normalize(ones(d))
-        w₁ = vcat(1.0, fill(0.0, d - 1))
-        # return (1 - λ) * w₀ .+ λ * w₁
         w  = vcat(ones(numNz), fill(0.0, d - numNz))
         return normalize(w)
     end

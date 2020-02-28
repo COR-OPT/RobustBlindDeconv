@@ -110,6 +110,11 @@ module BlindDeconv
     end
 
 
+    """
+        smoothLoss(prob::BCProb, w, x) -> ℓ
+
+    Compute the smooth (squared ℓ₂) loss at the current iterates `w, x`.
+    """
     function smoothLoss(prob::BCProb, w, x)
         return (1 / length(prob.y)) * norm(residual(prob, w, x))^2
     end
@@ -336,32 +341,29 @@ module BlindDeconv
     end
 
 
-    function gradientMethod(prob, T, λ=1.0, q=1.0; γ=1.0, ϵ=1e-10, use_polyak=true)
+    """
+        gradientMethod(prob, λ, T; ϵ=1e-10)
+
+    Run the vanilla gradient method with polyak stepsize scaled by `λ` for the
+    smooth formulation of the bilinear sensing problem `prob` for `T`
+    iterations.
+    """
+    function gradientMethod(prob, λ, T; ϵ=1e-10)
         d1, d2 = length(prob.w), length(prob.x)
         wxf    = norm(prob.w) * norm(prob.x)
         wxM    = prob.w .* prob.x'
         distFun = (w, x) -> norm(w .* x' - wxM) / wxf
         dists = fill(0.0, T)
         xk, wk = copy(prob.x0), copy(prob.w0)
-        η = λ
         for i = 1:T
             dists[i] = distFun(wk, xk)
             (dists[i] ≤ ϵ) && return wk, xk, dists[1:i]
             gw, gx = gradSmooth(prob, wk, xk)
             gMag = norm(vcat(gw, gx))
-            if use_polyak
-                loss = smoothLoss(prob, wk, xk)
-                step = loss / (gMag^2)
-                wk[:] = wk - step * gw
-                xk[:] = xk - step * gx
-            else
-                wk[:] = wk - η * (gw / gMag)
-                xk[:] = xk - η * (gx / gMag)
-            end
-            if (γ != nothing)
-                project2ball!(wk, γ); project2ball!(xk, γ)
-            end
-            η *= q
+            loss = smoothLoss(prob, wk, xk)
+            step = λ * loss / (gMag^2)
+            wk[:] = wk - step * gw
+            xk[:] = xk - step * gx
         end
         return wk, xk, dists
     end
@@ -601,7 +603,10 @@ module BlindDeconv
     setting, the "left" measurement matrix is a partial DFT matrix and the
     "right" measurement matrix is a complex Gaussian matrix.
     """
-    function genCoherentProblem(d, m, λ, δ, pfail=0.0)
+    function genCoherentProblem(d, m, λ, δ=0.5, pfail=0.0; random_init=true)
+        if (λ > 1) || (λ < 0)
+            throw(ErrorException("λ must be between 0 and 1"))
+        end
         w = Utils.genCoherentVec(d, λ); x = normalize(randn(d))
         # dft-type measurements
         Ltype = BlindDeconv.pdft; Rtype = BlindDeconv.complex_gaussian
@@ -610,9 +615,14 @@ module BlindDeconv
         y = fill(zero(eltype(R)), m)
         y[:] = generateMeasurements(L, R, w, x, pfail)
         # initialize close to the truth, make sure both vectors are complex
-        w₀   = fill(zero(eltype(y)), d); x₀ = fill(zero(eltype(y)), d)
-        w₀   = w + δ * normalize(complex(randn(d)) + complex(randn(d))im) * norm(w)
-        x₀   = x + δ * normalize(complex(randn(d)) + complex(randn(d))im) * norm(x)
+        w₀ = fill(zero(eltype(y)), d); x₀ = fill(zero(eltype(y)), d)
+        if random_init
+            w₀ = normalize(complex(randn(d)) + complex(randn(d))im)
+            x₀ = normalize(complex(randn(d)) + complex(randn(d))im)
+        else
+            w₀ = w + δ * normalize(complex(randn(d)) + complex(randn(d))im) * norm(w)
+            x₀ = x + δ * normalize(complex(randn(d)) + complex(randn(d))im) * norm(x)
+        end
         return BCProb(L, R, LT, RT, y, w, x, w₀, x₀, pfail)
     end
 
