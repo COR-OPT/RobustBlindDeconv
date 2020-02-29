@@ -31,7 +31,7 @@ def phase_plot(save_name, path, dim):
     ax.set_xlabel(r"$ \mu_h^2 $")
     ax.set_ylabel(r"$ \frac{m}{2d} $", rotation=0, labelpad=20)
     yidx    = np.arange(ynum)
-    ylabels = list(map(lambda x: "$ %s " % format(x), np.arange(ynum) + 1))
+    ylabels = list(map(lambda x: "$ %s " % format(x), np.unique(df[:, 0])))
     xlabels = [""] * xnum
     xlabels = list(map(lambda x: "$ %.0f $" % x, df[:, 1]))
     # xlabels[0] = "$ {} $".format(int(0.05 * 100))

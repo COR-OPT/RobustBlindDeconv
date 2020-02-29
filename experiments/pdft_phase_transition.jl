@@ -46,20 +46,20 @@ end
 
 
 """
-    mainLoop(iMax, d, T, ϵ, reps, λLength)
+    mainLoop(iMax, d, T, ϵ, reps, λLength, oSample)
 
 Run the main loop, with the number of measurements ranging from `2d` to
 `iMax * 2d`. The results are stored in a .csv file called
 "pdft_recovery_[d].csv", where `[d]` is the number used for the dimension `d`.
 """
-function mainLoop(iMax, d, T, ϵ, reps, λLength)
+function mainLoop(iMax, d, T, ϵ, reps, λLength, oSample)
     λRng = range(0.01, stop=1.0, length=λLength)
     dfSm = DataFrame(i=Int64[], mu=Int64[], lambda=[], succ=[])
     dfNs = DataFrame(i=Int64[], mu=Int64[], lambda=[], succ=[])
     succSm = fill(0.0, iMax, length(λRng))
     succNs = fill(0.0, iMax, length(λRng))
     for i = 1:iMax
-        m = i * 2 * d
+        m = i * 2 * d * oSample
         skip_sm = false; skip_ns = false
         for (idx, λ) in enumerate(λRng)
             nNnz = trunc(Int, ceil(λ * d))
@@ -75,12 +75,12 @@ function mainLoop(iMax, d, T, ϵ, reps, λLength)
             end
             succSm[i, idx], succNs[i, idx] = computeRecProb(λ, m, d, T, ϵ, reps,
                                                             skip_sm, skip_ns)
-            push!(dfSm, (i, nNnz, λ, succSm[i, idx]))
-            push!(dfNs, (i, nNnz, λ, succNs[i, idx]))
+            push!(dfSm, (i * oSample, nNnz, λ, succSm[i, idx]))
+            push!(dfNs, (i * oSample, nNnz, λ, succNs[i, idx]))
         end
     end
-    CSV.write("pdft_recovery_$(d)_smooth.csv", dfSm)
-    CSV.write("pdft_recovery_$(d)_nonsmooth.csv", dfNs)
+    CSV.write("pdft_recovery_$(d)_smooth_$(oSample).csv", dfSm)
+    CSV.write("pdft_recovery_$(d)_nonsmooth_$(oSample).csv", dfNs)
 end
 
 function main()
@@ -121,13 +121,18 @@ function main()
             help = "The maximum ratio of measurements to d_1 + d_2"
             arg_type = Int
             default = 8
+        "--oversample"
+            help     = "The oversampling factor for each ratio"
+            arg_type = Int
+            default  = 1
     end
     parsed  = parse_args(s); Random.seed!(parsed["seed"])
     d, T, i = parsed["dim"], parsed["iters"], parsed["iMax"]
     ϵ, reps = parsed["success_dist"], parsed["repeats"]
     λLength = parsed["lambda_length"]
+    oSample = parsed["oversample"]
     # seed RNG
-    mainLoop(i, d, T, ϵ, reps, λLength)
+    mainLoop(i, d, T, ϵ, reps, λLength, oSample)
 end
 
 main()
