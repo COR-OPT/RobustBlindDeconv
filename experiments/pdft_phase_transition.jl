@@ -25,17 +25,21 @@ using Statistics
 Compute the empirical recovery probability for a given configuration of
 parameters with threshold `ϵ` and `reps` repeats.
 """
-function computeRecProb(λ, m, d, T, ϵ, reps)
+function computeRecProb(λ, m, d, T, ϵ, reps, skip_sm, skip_ns)
     succRepSm = fill(0, reps)
     succRepNs = fill(0, reps)
     for rep = 1:reps
         @info("[m] - $(m), [λ] - $(λ), [it]: $(rep)")
         prob = BlindDeconv.genCoherentProblem(d, m, λ, random_init=true)
-        _, _, dsSm = BlindDeconv.gradientMethod(prob, 1.0, T, ϵ=ϵ)
-        _, _, dsNs = BlindDeconv.subgradientMethod(prob, 1.0, 1.0, T,
-                                                   use_polyak=true, ϵ=ϵ)
-        succRepSm[rep] = trunc(Int, dsSm[end] ≤ ϵ)
-        succRepNs[rep] = trunc(Int, dsNs[end] ≤ ϵ)
+        if !skip_sm
+            _, _, dsSm = BlindDeconv.gradientMethod(prob, 1.0, T, ϵ=ϵ)
+            succRepSm[rep] = trunc(Int, dsSm[end] ≤ ϵ)
+        end
+        if !skip_ns
+            _, _, dsNs = BlindDeconv.subgradientMethod(prob, 1.0, 1.0, T,
+                                                       use_polyak=true, ϵ=ϵ)
+            succRepNs[rep] = trunc(Int, dsNs[end] ≤ ϵ)
+        end
     end
     return mean(succRepSm), mean(succRepNs)
 end
@@ -50,18 +54,29 @@ Run the main loop, with the number of measurements ranging from `2d` to
 """
 function mainLoop(iMax, d, T, ϵ, reps, λLength)
     λRng = range(0.01, stop=1.0, length=λLength)
-    dfSm = DataFrame(i=Int64[], mu=[], lambda=[], succ=[])
-    dfNs = DataFrame(i=Int64[], mu=[], lambda=[], succ=[])
+    dfSm = DataFrame(i=Int64[], mu=Int64[], lambda=[], succ=[])
+    dfNs = DataFrame(i=Int64[], mu=Int64[], lambda=[], succ=[])
+    succSm = fill(0.0, iMax, length(λRng))
+    succNs = fill(0.0, iMax, length(λRng))
     for i = 1:iMax
-        m    = i * 2 * d
-        Fmat = fft(Matrix(1.0I, m, m), 2)[:, 1:d]
+        m = i * 2 * d
+        skip_sm = false; skip_ns = false
         for (idx, λ) in enumerate(λRng)
             nNnz = trunc(Int, ceil(λ * d))
-            wCoh = vcat(ones(nNnz), fill(0.0, d - nNnz))  # vector to recover
-            μ₀   = norm(Fmat * LinearAlgebra.normalize(wCoh), Inf)^2
-            succSm, succNs = computeRecProb(λ, m, d, T, ϵ, reps)
-            push!(dfSm, (i, μ₀, λ, succSm))
-            push!(dfNs, (i, μ₀, λ, succNs))
+            if (idx > 1)  # skip unnecessary runs
+                if succSm[i, idx - 1] <= 1e-15
+                    @debug("Found zero rate at $(i), $(idx) (smooth) - skipping...")
+                    skip_sm = true
+                end
+                if succNs[i, idx - 1] <= 1e-15
+                    @debug("Found zero rate at $(i), $(idx) (nonsmooth) - skipping...")
+                    skip_ns = true
+                end
+            end
+            succSm[i, idx], succNs[i, idx] = computeRecProb(λ, m, d, T, ϵ, reps,
+                                                            skip_sm, skip_ns)
+            push!(dfSm, (i, nNnz, λ, succSm[i, idx]))
+            push!(dfNs, (i, nNnz, λ, succNs[i, idx]))
         end
     end
     CSV.write("pdft_recovery_$(d)_smooth.csv", dfSm)

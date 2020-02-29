@@ -20,14 +20,14 @@ def setup_matplotlib():
     })
 
 
-def phase_plot(save_name, path):
+def phase_plot(save_name, path, dim):
     df = np.loadtxt(path, delimiter=',', skiprows=1)
     ynum = len(np.unique(df[:, 0]))
     xnum = len(np.unique(df[:, 1]))
     fig, ax = plt.subplots()
     im = ax.imshow(np.reshape(df[:, 3], (ynum, xnum)),
         cmap="gray", interpolation="nearest")
-    ax.set_title(r"$ d = 50 $")
+    ax.set_title("$ d = %d $" % dim)
     ax.set_xlabel(r"$ \mu_h^2 $")
     ax.set_ylabel(r"$ \frac{m}{2d} $", rotation=0, labelpad=20)
     yidx    = np.arange(ynum)
@@ -45,7 +45,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
         Generates a phase transition plot given the phase transition data in a
         pair of .CSV files""")
-    parser.add_argument('-i','--in_file',
+    parser.add_argument('-d', '--dim',
+        help='The problem dimension',
+        type=int,
+        default=100)
+    parser.add_argument('-i', '--in_file',
         help='The input file to read from',
         type=str,
         required=True)
@@ -55,4 +59,4 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
     in_path, out_path = args["in_file"], args["out_file"]
     setup_matplotlib()
-    phase_plot(out_path, in_path)
+    phase_plot(out_path, in_path, args["dim"])

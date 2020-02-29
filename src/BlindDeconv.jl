@@ -344,11 +344,11 @@ module BlindDeconv
     """
         gradientMethod(prob, λ, T; ϵ=1e-10)
 
-    Run the vanilla gradient method with polyak stepsize scaled by `λ` for the
+    Run the vanilla gradient method with stepsize scaled by `λ` for the
     smooth formulation of the bilinear sensing problem `prob` for `T`
     iterations.
     """
-    function gradientMethod(prob, λ, T; ϵ=1e-10)
+    function gradientMethod(prob, λ, T; ϵ=1e-10, use_polyak=true)
         d1, d2 = length(prob.w), length(prob.x)
         wxf    = norm(prob.w) * norm(prob.x)
         wxM    = prob.w .* prob.x'
@@ -359,11 +359,16 @@ module BlindDeconv
             dists[i] = distFun(wk, xk)
             (dists[i] ≤ ϵ) && return wk, xk, dists[1:i]
             gw, gx = gradSmooth(prob, wk, xk)
-            gMag = norm(vcat(gw, gx))
-            loss = smoothLoss(prob, wk, xk)
-            step = λ * loss / (gMag^2)
-            wk[:] = wk - step * gw
-            xk[:] = xk - step * gx
+            if use_polyak
+                gMag = norm(vcat(gw, gx))
+                loss = smoothLoss(prob, wk, xk)
+                step = λ * loss / (gMag^2)
+                wk[:] = wk - step * gw
+                xk[:] = xk - step * gx
+            else
+                wk[:] = wk - (λ / (norm(wk)^2)) * gw
+                xk[:] = xk - (λ / (norm(xk)^2)) * gx
+            end
         end
         return wk, xk, dists
     end
